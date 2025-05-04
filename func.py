@@ -5,6 +5,60 @@ import time
 from tqdm import tqdm
 
 
+# 禁止文字置換
+def rename_for_windows(name):
+    while True:
+        tmp = name
+        # 半角文字の削除
+        name = name.translate(
+            (
+                str.maketrans(
+                    {
+                        "\a": "",
+                        "\b": "",
+                        "\f": "",
+                        "\n": "",
+                        "\r": "",
+                        "\t": "",
+                        "\v": "",
+                        "'": "'",
+                        '"': '"',
+                        "\0": "",
+                    }
+                )
+            )
+        )
+        # エスケープシーケンスを削除
+        name = name.translate(
+            (
+                str.maketrans(
+                    {
+                        "\\": "￥",
+                        "/": "／",
+                        ":": "：",
+                        "*": "＊",
+                        "?": "？",
+                        '"': "”",
+                        ">": "＞",
+                        "<": "＜",
+                        "|": "｜",
+                    }
+                )
+            )
+        )
+        # 先頭/末尾のドットの削除
+        name = name.strip(".")
+        # 先頭/末尾の半角スペースを削除
+        name = name.strip(" ")
+        # 先頭/末尾の全角スペースを削除
+        name = name.strip("　")
+
+        if name == tmp:
+            break
+
+    return name
+
+
 # API接続
 def access_api(input_url: str, index: int = 0) -> dict:
     service = input_url.split("/")[3]
@@ -24,7 +78,7 @@ def access_api(input_url: str, index: int = 0) -> dict:
 
 # ディレクトリ作成
 def make_dir(artist_data: dict) -> str:
-    artist_name = artist_data["props"]["name"].strip()
+    artist_name = rename_for_windows(artist_data["props"]["name"])
     artist_service = artist_data["props"]["service"]
     artist_id = artist_data["props"]["id"]
     artist_dir = f"download/{artist_name}-{artist_service}-{artist_id}"
@@ -45,7 +99,7 @@ def make_file_list(input_url: str, posts_count: int, artist_dir: str) -> list[di
         for index in range(len(results)):
             post_data = {
                 "id": results[index]["id"],
-                "title": results[index]["title"].strip(),
+                "title": rename_for_windows(results[index]["title"]),
                 "published": results[index]["published"],
                 "files": [],
             }
@@ -53,14 +107,14 @@ def make_file_list(input_url: str, posts_count: int, artist_dir: str) -> list[di
             for content in result_previews[index]:
                 post_data["files"].append(
                     {
-                        "name": content["name"],
+                        "name": rename_for_windows(content["name"]),
                         "url": f"{content['server']}/data{content['path']}",
                     }
                 )
             for content in result_attachments[index]:
                 post_data["files"].append(
                     {
-                        "name": content["name"],
+                        "name": rename_for_windows(content["name"]),
                         "url": f"{content['server']}/data{content['path']}",
                     }
                 )
